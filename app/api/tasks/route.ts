@@ -1,41 +1,55 @@
-import { type NextRequest, NextResponse } from "next/server"
-import { getUserTasks, createTask } from "@/lib/storage"
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 
-export async function GET(request: NextRequest) {
+export async function GET(req: Request) {
   try {
-    const userId = request.nextUrl.searchParams.get("userId")
-    const status = request.nextUrl.searchParams.get("status")
+    const { searchParams } = new URL(req.url);
+    const userId = searchParams.get("userId");
 
     if (!userId) {
-      return NextResponse.json({ error: "userId é obrigatório" }, { status: 400 })
+      return NextResponse.json({ error: "Missing userId" }, { status: 400 });
     }
 
-    let tasks = getUserTasks(userId)
+    const tasks = await prisma.task.findMany({
+      where: { userId },
+      orderBy: { createdAt: "desc" },
+    });
 
-    // Filter by status if provided
-    if (status) {
-      tasks = tasks.filter((t) => t.status === status)
-    }
-
-    return NextResponse.json(tasks)
-  } catch (error) {
-    return NextResponse.json({ error: "Erro ao buscar tarefas" }, { status: 500 })
+    return NextResponse.json(tasks, { status: 200 });
+  } catch (err) {
+    console.error("Erro GET /tasks:", err);
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    );
   }
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(req: Request) {
   try {
-    const body = await request.json()
-    const { userId, title, description, dueDate } = body
+    const body = await req.json();
+    const { userId, title, description, dueDate } = body;
 
     if (!userId || !title) {
-      return NextResponse.json({ error: "userId e title são obrigatórios" }, { status: 400 })
+      return NextResponse.json({ error: "Missing fields" }, { status: 400 });
     }
 
-    const newTask = createTask(userId, title, description || "", dueDate || "")
+    const newTask = await prisma.task.create({
+      data: {
+        userId, // não precisa usar ObjectId
+        title,
+        description: description || "",
+        dueDate: dueDate ? new Date(dueDate) : null,
+        status: "pending",
+      },
+    });
 
-    return NextResponse.json(newTask, { status: 201 })
-  } catch (error) {
-    return NextResponse.json({ error: "Erro ao criar tarefa" }, { status: 500 })
+    return NextResponse.json(newTask, { status: 201 });
+  } catch (err) {
+    console.error("Erro POST /tasks:", err);
+    return NextResponse.json(
+      { error: "Failed to create task" },
+      { status: 500 }
+    );
   }
 }

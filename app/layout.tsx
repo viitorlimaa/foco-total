@@ -11,7 +11,7 @@ const _inter = Inter({ subsets: ["latin"], variable: "--font-sans" })
 export const metadata: Metadata = {
   title: "Foco Total",
   description: "Gerenciamento de Tarefas Inteligente e Eficiente",
-  generator: "v0.app",
+  generator: "DEV 5",
   icons: {
     icon: [
       {
