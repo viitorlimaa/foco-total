@@ -1,56 +1,51 @@
 'use client';
 
-import { useState } from 'react';
-import { useAuth } from '@/lib/auth-context';
-import { useCreateTask } from '@/lib/tasks-hooks'; 
-import { useToast } from '@/hooks/use-toast';
-import { Button } from '@/components/ui/button'; 
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { useState } from "react"
+import { useAuth } from "@/lib/auth-context"
+import { useCreateTask } from "@/lib/tasks-hooks"
+import { useForm } from "react-hook-form"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { useToast } from "@/hooks/use-toast";
+
+interface CreateTaskFormProps {
+  onTaskCreated?: () => void
+}
+
+interface TaskFormData {
+  title: string
+  description: string
+  dueDate: string
+}
 
 export function CreateTaskForm() {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  // Estados locais do formulário
-  const [title, setTitle] = useState('');
+  const{
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<TaskFormData>()
  
   
   const { mutate: createTask, isPending } = useCreateTask();
 
- const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    // --- DEBUG: VAMOS VER O QUE ESTÁ ACONTECENDO ---
-    console.log("Formulário submetido!");
-    console.log("Usuário (useAuth):", user);
-    console.log("Título (useState):", title);
-    // ---------------------------------------------
-
-    // Verificação de validação
-    if (!user || !title.trim()) {
-      console.error("Validação falhou! O 'user' ou o 'title' está faltando.", { user, title });
-      toast({
-        title: "Erro de validação",
-        description: "O título é obrigatório e você deve estar logado.",
-        variant: "destructive",
-      });
-      return; // A função para aqui
-    }
-
-    console.log("Validação passou. Enviando para a mutação...");
+ const onSubmit = (values: TaskFormData) => {
+    if (!user) return;
 
     createTask(
       {
         userId: user.id,
-        title,
-        description: "", // Você pode adicionar os outros campos aqui
-        dueDate: "",     // Você pode adicionar os outros campos aqui
+        {...values}
       },
       {
         onSuccess: () => {
           toast({ title: 'Sucesso!', description: 'Tarefa criada.' });
-          setTitle(''); // Limpa o formulário
         },
         onError: (error) => {
           toast({
@@ -63,22 +58,64 @@ export function CreateTaskForm() {
     );
   };
     return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <Label htmlFor="title">Título</Label>
-        <Input
-          id="title"
-          type="text"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Título da tarefa..."
-          disabled={isPending}
-        />
-      </div>
-   
-      <Button type="submit" disabled={isPending}>
-        {isPending ? 'Salvando...' : 'Adicionar Tarefa'}
-      </Button>
-    </form>
+    <Card>
+      <CardHeader>
+        <CardTitle>Nova Tarefa</CardTitle>
+        <CardDescription>Crie uma nova tarefa para gerenciar suas atividades</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="title">Título</Label>
+            <Input
+              id="title"
+              placeholder="Exemplo: Estudar React"
+              {...register("title", {
+                required: "Título é obrigatório",
+                minLength: { value: 3, message: "O título deve ter pelo menos 3 letras" }
+              })}
+            />
+            {errors.title &&(
+              <span className="text-xs text-red-500">{errors.title.message}</span>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="description">Descrição</Label>
+            <Textarea
+              id="description"
+              placeholder="Descreva sua tarefa..."
+              rows={3}
+              {...register("description")}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="dueDate">Data de Vencimento</Label>
+            <Input
+              id="dueDate"
+              type="date"
+              {...register("dueDate", {
+                validate: (value) => {
+                if (!value) return true;
+                const selectedDate = new Date(value + "T23:59:59").getTime();
+                const today = new Date().getTime();
+                return selectedDate > today || "A data não pode ser no passado";
+                }
+              })}
+              
+            />
+
+            {errors.dueDate && (
+              <span className="text-xs text-red-500">{errors.dueDate.message}</span>
+            )}
+          </div>
+
+          <Button type="submit" className="w-full cursor-pointer" disabled={isSubmitting}>
+            {isSubmitting ? "Criando..." : "Criar Tarefa"}
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
   );
 }
