@@ -3,7 +3,7 @@ import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import "./globals.css"
-import { AuthProvider } from "@/lib/auth-context"
+import { AuthProvider } from "@/context/auth-context"
 import { ThemeProvider } from "@/lib/theme-context"
 
 const _inter = Inter({ subsets: ["latin"], variable: "--font-sans" })

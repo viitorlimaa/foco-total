@@ -1,37 +1,34 @@
-"use client"
-import { useAuth } from "@/lib/auth-context"
-import { useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
-import { TaskHeader } from "@/components/task-header"
-import { CreateTaskForm } from "@/components/create-task-form"
-import { TaskList } from "@/components/task-list"
+"use client";
+
+import { useAuth } from "@/context/auth-context";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { TaskHeader } from "@/components/task-header";
+import { CreateTaskForm } from "@/components/create-task-form";
+import { TaskList } from "@/components/task-list";
 
 export default function DashboardPage() {
-  const { user, isAuthenticated, isLoading } = useAuth()
-  const router = useRouter()
-  const [refreshTrigger, setRefreshTrigger] = useState(0)
+  const { user, isAuthenticated, isLoading } = useAuth();
+  const router = useRouter();
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      router.push("/login")
+      router.push("/login");
     }
-  }, [isAuthenticated, isLoading, router])
+  }, [isAuthenticated, isLoading, router]);
 
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-muted-foreground">Carregando...</div>
       </div>
-    )
+    );
   }
 
-  if (!user) {
-    return null
-  }
+  if (!user) return null;
 
-  const handleTaskCreated = () => {
-    setRefreshTrigger((prev) => prev + 1)
-  }
+  const handleTaskCreated = () => setRefreshTrigger((prev) => prev + 1);
 
   return (
     <div className="min-h-screen bg-background">
@@ -46,10 +43,14 @@ export default function DashboardPage() {
 
           {/* Right column: Task list */}
           <div className="lg:col-span-2">
-            <TaskList key={refreshTrigger} userId={user.id} showFilters={true} />
+            <TaskList
+              key={refreshTrigger}
+              userId={user.id}
+              showFilters={true}
+            />
           </div>
         </div>
       </main>
     </div>
-  )
+  );
 }

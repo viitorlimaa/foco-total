@@ -1,132 +1,129 @@
-"use client"
+// components/AuthForm.tsx
+"use client";
 
-import type React from "react"
+import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { useAuth } from "@/lib/auth-context"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { useAuth } from "@/context/auth-context";
+
+const schema = z.object({
+  email: z.string().email("Email inválido"),
+  password: z.string().min(6, "Senha deve ter ao menos 6 caracteres"),
+  // Em signup o name será obrigatório — validação do front-end:
+  name: z.string().min(1, "Nome obrigatório").optional(),
+});
+
+type FormData = z.infer<typeof schema>;
 
 interface AuthFormProps {
-  mode: "login" | "signup"
+  mode: "login" | "signup";
 }
 
 export function AuthForm({ mode }: AuthFormProps) {
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-    name: "",
-  })
-  const [error, setError] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
+  const { login, signup } = useAuth();
+  const router = useRouter();
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const { login, signup } = useAuth()
-  const router = useRouter()
+  const { register, handleSubmit, formState } = useForm<FormData>({
+    resolver: zodResolver(schema),
+  });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
-    setError("")
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
-    setError("")
+  const onSubmit = async (data: FormData) => {
+    setIsLoading(true);
+    setError("");
 
     try {
       if (mode === "login") {
-        await login(formData.email, formData.password)
+        await login(data.email, data.password);
       } else {
-        await signup(formData.email, formData.password, formData.name)
+        // forçar validação do name aqui (no schema está optional para permitir render em login)
+        if (!data.name) {
+          setError("Nome obrigatório");
+          return;
+        }
+        await signup(data.email, data.password, data.name);
       }
-      router.push("/dashboard")
+
+      router.push("/dashboard");
     } catch (err: any) {
-      setError(err.message || "Erro ao processar solicitação")
+      const message = err?.response?.data?.error ?? err?.message ?? "Erro desconhecido";
+      setError(message);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
     <Card className="w-full max-w-md">
       <CardHeader>
         <CardTitle>{mode === "login" ? "Entrar" : "Criar Conta"}</CardTitle>
         <CardDescription>
-          {mode === "login" ? "Faça login para acessar suas tarefas" : "Crie uma nova conta para começar"}
+          {mode === "login"
+            ? "Faça login para acessar suas tarefas"
+            : "Crie uma nova conta para começar"}
         </CardDescription>
       </CardHeader>
+
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           {mode === "signup" && (
             <div className="space-y-2">
               <Label htmlFor="name">Nome</Label>
-              <Input
-                id="name"
-                name="name"
-                type="text"
-                placeholder="Seu nome"
-                value={formData.name}
-                onChange={handleChange}
-                required
-              />
+              <Input id="name" type="text" {...register("name")} />
+              {formState.errors.name && (
+                <span className="text-destructive text-sm">
+                  {formState.errors.name.message}
+                </span>
+              )}
             </div>
           )}
 
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              name="email"
-              type="email"
-              placeholder="seu@email.com"
-              value={formData.email}
-              onChange={handleChange}
-              required
-            />
+            <Input id="email" type="email" {...register("email")} />
+            {formState.errors.email && (
+              <span className="text-destructive text-sm">
+                {formState.errors.email.message}
+              </span>
+            )}
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="password">Senha</Label>
-            <Input
-              id="password"
-              name="password"
-              type="password"
-              placeholder="••••••••"
-              value={formData.password}
-              onChange={handleChange}
-              required
-            />
-          </div>
-
-          {error && <div className="p-3 bg-destructive/10 text-destructive text-sm rounded-md">{error}</div>}
-
-          <Button type="submit" className="w-full cursor-pointer" disabled={isLoading}>
-            {isLoading ? "Processando..." : mode === "login" ? "Entrar" : "Criar Conta"}
-          </Button>
-
-          <div className="text-sm text-center text-muted-foreground">
-            {mode === "login" ? (
-              <>
-                Não tem conta?{" "}
-                <a href="/signup" className="text-primary hover:underline cursor-pointer">
-                  Criar conta
-                </a>
-              </>
-            ) : (
-              <>
-                Já tem conta?{" "}
-                <a href="/login" className="text-primary hover:underline cursor-pointer">
-                  Entrar
-                </a>
-              </>
+            <Input id="password" type="password" {...register("password")} />
+            {formState.errors.password && (
+              <span className="text-destructive text-sm">
+                {formState.errors.password.message}
+              </span>
             )}
           </div>
+
+          {error && (
+            <div className="p-3 bg-destructive/10 text-destructive text-sm rounded-md">
+              {error}
+            </div>
+          )}
+
+          <Button type="submit" className="w-full" disabled={isLoading}>
+            {isLoading ? "Processando..." : mode === "login" ? "Entrar" : "Criar Conta"}
+          </Button>
         </form>
       </CardContent>
     </Card>
-  )
+  );
 }

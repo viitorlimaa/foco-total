@@ -5,7 +5,6 @@ export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const userId = searchParams.get("userId");
-
     if (!userId) {
       return NextResponse.json({ error: "Missing userId" }, { status: 400 });
     }
@@ -19,7 +18,7 @@ export async function GET(req: Request) {
   } catch (err) {
     console.error("Erro GET /tasks:", err);
     return NextResponse.json(
-      { error: "Internal Server Error" },
+      { error: "Failed to fetch tasks" },
       { status: 500 }
     );
   }
@@ -28,27 +27,57 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { userId, title, description, dueDate } = body;
+    console.log("REQ BODY RECEBIDO:", body);
 
-    if (!userId || !title) {
-      return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+    const { title, description, dueDate, status, userId } = body;
+
+    if (!title || !userId) {
+      return NextResponse.json(
+        { error: "Título e usuário são obrigatórios" },
+        { status: 400 }
+      );
     }
 
-    const newTask = await prisma.task.create({
+    // Validar status
+    let safeStatus = "pending";
+
+    if (
+      typeof status === "string" &&
+      ["pending", "done", "canceled"].includes(status)
+    ) {
+      safeStatus = status;
+    } else {
+      console.warn("Status inválido recebido:", status);
+    }
+
+    // Validar data
+    let parsedDate: Date | null = null;
+
+    if (dueDate) {
+      const d = new Date(dueDate);
+      if (!isNaN(d.getTime())) {
+        parsedDate = d;
+      } else {
+        console.warn("Data inválida recebida:", dueDate);
+      }
+    }
+
+    // Criar tarefa
+    const task = await prisma.task.create({
       data: {
-        userId, // não precisa usar ObjectId
+        userId,
         title,
-        description: description || "",
-        dueDate: dueDate ? new Date(dueDate) : null,
-        status: "pending",
+        description,
+        status: safeStatus,
+        dueDate: parsedDate,
       },
     });
 
-    return NextResponse.json(newTask, { status: 201 });
+    return NextResponse.json(task, { status: 201 });
   } catch (err) {
     console.error("Erro POST /tasks:", err);
     return NextResponse.json(
-      { error: "Failed to create task" },
+      { error: "Falha ao criar tarefa (dados inválidos)" },
       { status: 500 }
     );
   }
