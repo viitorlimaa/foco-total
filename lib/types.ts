@@ -1,4 +1,3 @@
-// Types for the entire application
 export interface User {
   id: string
   email: string
@@ -6,14 +5,16 @@ export interface User {
   createdAt: string
 }
 
-export interface Task {
-  id: string
-  userId: string
+
+export interface TaskPayload {
   title: string
-  description: string
+  description?: string
   dueDate: string
   status: "pending" | "completed"
-  createdAt: string
+}
+
+export interface Task extends TaskPayload {
+  id: string
 }
 
 export interface AuthContextType {

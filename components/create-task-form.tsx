@@ -1,25 +1,15 @@
 'use client';
-
-import { useState } from "react"
-import { useAuth } from "@/lib/auth-context"
-import { useCreateTask } from "@/lib/tasks-hooks"
-import { useForm } from "react-hook-form"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { useAuth } from "@/lib/auth-context";
+import { useCreateTaskMutation } from "@/lib/tasks-hooks";
+import { useForm } from "react-hook-form";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { TaskPayload } from "@/lib/types";
 
-interface CreateTaskFormProps {
-  onTaskCreated?: () => void
-}
-
-interface TaskFormData {
-  title: string
-  description: string
-  dueDate: string
-}
 
 export function CreateTaskForm() {
   const { user } = useAuth();
@@ -28,35 +18,39 @@ export function CreateTaskForm() {
   const{
     register,
     handleSubmit,
-    reset,
-    formState: { errors, isSubmitting },
-  } = useForm<TaskFormData>()
+    formState: { errors },
+  } = useForm<TaskPayload>({
+    defaultValues: {
+      title: "",
+      description: "",
+      dueDate: "",
+    },
+  });
  
   
-  const { mutate: createTask, isPending } = useCreateTask();
+  const createTaskMutation = useCreateTaskMutation();
 
- const onSubmit = (values: TaskFormData) => {
-    if (!user) return;
+  const onSubmit = (values: TaskPayload) => {
+      if (!user) return;
 
-    createTask(
-      {
-        userId: user.id,
-        {...values}
-      },
-      {
-        onSuccess: () => {
-          toast({ title: 'Sucesso!', description: 'Tarefa criada.' });
+      createTaskMutation.mutate(
+        {
+          ...values,
         },
-        onError: (error) => {
-          toast({
-            title: 'Erro ao criar tarefa',
-            description: error.message,
-            variant: "destructive",
-          });
-        },
-      }
-    );
-  };
+        {
+          onSuccess: () => {
+            toast({ title: 'Sucesso!', description: 'Tarefa criada.' });
+          },
+          onError: (error) => {
+            toast({
+              title: 'Erro ao criar tarefa',
+              description: error.message,
+              variant: "destructive",
+            });
+          },
+        }
+      );
+    };
     return (
     <Card>
       <CardHeader>
@@ -111,8 +105,8 @@ export function CreateTaskForm() {
             )}
           </div>
 
-          <Button type="submit" className="w-full cursor-pointer" disabled={isSubmitting}>
-            {isSubmitting ? "Criando..." : "Criar Tarefa"}
+          <Button type="submit" className="w-full cursor-pointer" disabled={createTaskMutation.isPending}>
+            {createTaskMutation.isPending ? "Criando..." : "Criar Tarefa"}
           </Button>
         </form>
       </CardContent>
