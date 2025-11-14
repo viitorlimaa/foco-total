@@ -1,10 +1,9 @@
 "use client"
 
-import type React from "react"
-
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
+import { useForm } from "react-hook-form"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -14,40 +13,39 @@ interface AuthFormProps {
   mode: "login" | "signup"
 }
 
-export function AuthForm({ mode }: AuthFormProps) {
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-    name: "",
-  })
-  const [error, setError] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
+interface FormData {
+  email: string
+  password: string
+  name?: string
+}
 
+export function AuthForm({ mode }: AuthFormProps) {
+  const [globalError, setGlobalError] = useState("")
+  
   const { login, signup } = useAuth()
   const router = useRouter()
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
-    setError("")
-  }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
-    setError("")
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    reset,
+  } = useForm<FormData>()
+
+
+  const onSubmit = async (data: FormData) => {
+    setGlobalError("")
 
     try {
       if (mode === "login") {
-        await login(formData.email, formData.password)
+        await login(data.email, data.password)
       } else {
-        await signup(formData.email, formData.password, formData.name)
+        await signup(data.email, data.password, data.name || "")
       }
       router.push("/dashboard")
     } catch (err: any) {
-      setError(err.message || "Erro ao processar solicitação")
-    } finally {
-      setIsLoading(false)
+      setGlobalError(err.message || "Erro ao processar solicitação")
     }
   }
 
@@ -60,19 +58,22 @@ export function AuthForm({ mode }: AuthFormProps) {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          
           {mode === "signup" && (
             <div className="space-y-2">
               <Label htmlFor="name">Nome</Label>
               <Input
                 id="name"
-                name="name"
-                type="text"
                 placeholder="Seu nome"
-                value={formData.name}
-                onChange={handleChange}
-                required
+              
+                {...register("name", { 
+                  required: mode === "signup" ? "O nome é obrigatório" : false 
+                })}
               />
+              {errors.name && (
+                <span className="text-xs text-red-500">{errors.name.message}</span>
+              )}
             </div>
           )}
 
@@ -80,32 +81,52 @@ export function AuthForm({ mode }: AuthFormProps) {
             <Label htmlFor="email">Email</Label>
             <Input
               id="email"
-              name="email"
               type="email"
               placeholder="seu@email.com"
-              value={formData.email}
-              onChange={handleChange}
-              required
+              {...register("email", { 
+                required: "O email é obrigatório",
+                pattern: {
+                  value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                  message: "Email inválido"
+                }
+              })}
             />
+            {errors.email && (
+              <span className="text-xs text-red-500">{errors.email.message}</span>
+            )}
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="password">Senha</Label>
             <Input
               id="password"
-              name="password"
               type="password"
               placeholder="••••••••"
-              value={formData.password}
-              onChange={handleChange}
-              required
+              {...register("password", { 
+                required: "A senha é obrigatória",
+                minLength: {
+                  value: 6,
+                  message: "A senha deve ter no mínimo 6 caracteres"
+                }
+              })}
             />
+            {errors.password && (
+              <span className="text-xs text-red-500">{errors.password.message}</span>
+            )}
           </div>
 
-          {error && <div className="p-3 bg-destructive/10 text-destructive text-sm rounded-md">{error}</div>}
+          {globalError && (
+            <div className="p-3 bg-destructive/10 text-destructive text-sm rounded-md">
+              {globalError}
+            </div>
+          )}
 
-          <Button type="submit" className="w-full cursor-pointer" disabled={isLoading}>
-            {isLoading ? "Processando..." : mode === "login" ? "Entrar" : "Criar Conta"}
+          <Button 
+            type="submit" 
+            className="w-full cursor-pointer" 
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? "Processando..." : mode === "login" ? "Entrar" : "Criar Conta"}
           </Button>
 
           <div className="text-sm text-center text-muted-foreground">

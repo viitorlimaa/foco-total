@@ -5,53 +5,59 @@ import type React from "react"
 import { useState } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { createTaskAction } from "@/lib/tasks-hooks"
+import { useForm } from "react-hook-form"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { set } from "date-fns"
 
 interface CreateTaskFormProps {
   onTaskCreated?: () => void
 }
 
+interface TaskFormData {
+  title: string
+  description: string
+  dueDate: string
+}
+
 export function CreateTaskForm({ onTaskCreated }: CreateTaskFormProps) {
   const { user } = useAuth()
-  const [formData, setFormData] = useState({
-    title: "",
-    description: "",
-    dueDate: "",
-  })
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState("")
-  const [success, setSuccess] = useState(false)
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
-  }
+  const [apiError, setApiError] = useState("")
+  const [success, setSucess] = useState(false)
+  
+  const{
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<TaskFormData>()
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-
+  const onSubmit = async (data: TaskFormData) => {
     if (!user) return
-
-    setIsLoading(true)
-    setError("")
-    setSuccess(false)
+    
+    setApiError("")
+    setSucess(false)
 
     try {
-      await createTaskAction(user.id, formData.title, formData.description, formData.dueDate)
+      await createTaskAction(
+        user.id,
+        data.title,
+        data.description,
+        data.dueDate
+      )
 
-      setFormData({ title: "", description: "", dueDate: "" })
-      setSuccess(true)
+      setSucess(true)
+      reset()
       onTaskCreated?.()
 
-      setTimeout(() => setSuccess(false), 3000)
+      setTimeout(() => setSucess(false), 3000)
+
     } catch (err: any) {
-      setError(err.message || "Erro ao criar tarefa")
-    } finally {
-      setIsLoading(false)
+      setApiError(err.message || "Erro ao criar tarefa")
     }
   }
 
@@ -62,44 +68,63 @@ export function CreateTaskForm({ onTaskCreated }: CreateTaskFormProps) {
         <CardDescription>Crie uma nova tarefa para gerenciar suas atividades</CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="title">Título *</Label>
+            <Label htmlFor="title">Título</Label>
             <Input
               id="title"
-              name="title"
               placeholder="Exemplo: Estudar React"
-              value={formData.title}
-              onChange={handleChange}
-              required
+              {...register("title", {
+                required: "Título é obrigatório",
+                minLength: { value: 3, message: "O título deve ter pelo menos 3 letras" }
+              })}
             />
+            {errors.title &&(
+              <span className="text-xs text-red-500">{errors.title.message}</span>
+            )}
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="description">Descrição</Label>
             <Textarea
               id="description"
-              name="description"
               placeholder="Descreva sua tarefa..."
-              value={formData.description}
-              onChange={handleChange}
               rows={3}
+              {...register("description")}
             />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="dueDate">Data de Vencimento</Label>
-            <Input id="dueDate" name="dueDate" type="date" value={formData.dueDate} onChange={handleChange} />
+            <Input
+              id="dueDate"
+              type="date"
+              {...register("dueDate", {
+                validate: (value) => {
+                if (!value) return true;
+                const selectedDate = new Date(value + "T23:59:59").getTime();
+                const today = new Date().getTime();
+                return selectedDate > today || "A data não pode ser no passado";
+                }
+              })}
+              
+            />
+
+            {errors.dueDate && (
+              <span className="text-xs text-red-500">{errors.dueDate.message}</span>
+            )}
           </div>
 
-          {error && <div className="p-3 bg-destructive/10 text-destructive text-sm rounded-md">{error}</div>}
+          {apiError && (
+            <div className="p-3 bg-destructive/10 text-destructive text-sm rounded-md">{apiError}</div>
+          )}
 
           {success && (
             <div className="p-3 bg-green-500/10 text-green-600 text-sm rounded-md">Tarefa criada com sucesso!</div>
           )}
 
-          <Button type="submit" className="w-full cursor-pointer" disabled={isLoading}>
-            {isLoading ? "Criando..." : "Criar Tarefa"}
+          <Button type="submit" className="w-full cursor-pointer" disabled={isSubmitting}>
+            {isSubmitting ? "Criando..." : "Criar Tarefa"}
           </Button>
         </form>
       </CardContent>

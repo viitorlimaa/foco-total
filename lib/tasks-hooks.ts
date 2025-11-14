@@ -8,6 +8,7 @@ const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 export function useTasks(userId: string | null, status?: string) {
   const query = new URLSearchParams();
+  // if (userId) query.append("userId", "admin");
   if (userId) query.append("userId", userId);
   if (status) query.append("status", status);
 
@@ -36,6 +37,7 @@ export async function createTaskAction(
   const res = await fetch("/api/tasks", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
+    // body: JSON.stringify({ userId: "admin", title, description, dueDate }),
     body: JSON.stringify({ userId, title, description, dueDate }),
   });
 
