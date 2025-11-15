@@ -65,11 +65,11 @@ export function TaskItem({ task }: { task: Task }) {
           onKeyDown={(e) => e.key === 'Enter' && handleSave()}
           onBlur={handleSave} 
           autoFocus
-          className="flex-grow p-1 border rounded"
+          className="grow p-1 border rounded"
         />
       ) : (
         // --- Modo de Visualização ---
-        <div className="flex-grow">
+        <div className="grow">
           <span className="font-medium">{task.title}</span>
       
         </div>
