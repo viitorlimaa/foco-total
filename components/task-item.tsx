@@ -9,30 +9,14 @@ import { Card, CardContent } from './ui/card';
 import { Button } from './ui/button';
 import { Check, Trash2, Edit } from 'lucide-react';
 import { Badge } from './ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
+import { EditTaskForm } from './edit-task';
 
 export function TaskItem({ task }: { task: Task }) {
   const { toast } = useToast();
-  const [isEditing, setIsEditing] = useState(false);
-  const [newTitle, setNewTitle] = useState(task.title);
+  const [open, setOpen] = useState(false);
 
   const updateTaskMutation = useUpdateTaskMutation();
-
-  const handleSave = () => {
-    updateTaskMutation.mutate(
-      {
-        // Integrar react-hook-form, então passar os valores corretos aqui
-      },
-      {
-        onSuccess: () => {
-          toast({ title: 'Tarefa atualizada!' });
-          setIsEditing(false);
-        },
-        onError: (err) => {
-          toast({ title: 'Erro ao atualizar', description: err.message, variant: 'destructive' });
-        },
-      }
-    );
-  };
 
   const deleteTaskMutation = useDeleteTaskMutation();
 
@@ -138,6 +122,30 @@ export function TaskItem({ task }: { task: Task }) {
               </div>
 
               <div>
+
+                <Dialog open={open} onOpenChange={setOpen}>
+                  <DialogTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setOpen(true)}
+                    >
+                      <Edit color='#0f64c5'/>
+                    </Button>
+                  </DialogTrigger>
+
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Editar Tarefa</DialogTitle>
+                    </DialogHeader>
+
+                    <EditTaskForm
+                      task={task}
+                      onClose={() => setOpen(false)}
+                    />
+                  </DialogContent>
+                </Dialog>
+
                 <Button
                   variant="ghost"
                   size="sm"
@@ -146,15 +154,6 @@ export function TaskItem({ task }: { task: Task }) {
                   aria-label="Deletar tarefa"
                 >
                   <Trash2 className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setIsEditing(!isEditing)}
-                  className="text-primary hover:bg-primary/10 cursor-pointer"
-                  aria-label="Editar tarefa"
-                >
-                  <Edit color='#0f64c5'/>
                 </Button>
               </div>
             </div>
