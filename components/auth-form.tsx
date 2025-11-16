@@ -1,13 +1,9 @@
-// components/AuthForm.tsx
 "use client";
 
-import React, { useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,51 +16,42 @@ import {
 } from "@/components/ui/card";
 import { useAuth } from "@/context/auth-context";
 
-const schema = z.object({
-  email: z.string().email("Email inválido"),
-  password: z.string().min(6, "Senha deve ter ao menos 6 caracteres"),
-  // Em signup o name será obrigatório — validação do front-end:
-  name: z.string().min(1, "Nome obrigatório").optional(),
-});
-
-type FormData = z.infer<typeof schema>;
-
 interface AuthFormProps {
   mode: "login" | "signup";
 }
 
+interface FormData {
+  email: string;
+  password: string;
+  name?: string;
+}
+
 export function AuthForm({ mode }: AuthFormProps) {
+  const [globalError, setGlobalError] = useState("");
+
   const { login, signup } = useAuth();
   const router = useRouter();
-  const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
 
-  const { register, handleSubmit, formState } = useForm<FormData>({
-    resolver: zodResolver(schema),
-  });
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    reset,
+  } = useForm<FormData>();
 
   const onSubmit = async (data: FormData) => {
-    setIsLoading(true);
-    setError("");
+    setGlobalError("");
 
     try {
       if (mode === "login") {
         await login(data.email, data.password);
       } else {
-        // forçar validação do name aqui (no schema está optional para permitir render em login)
-        if (!data.name) {
-          setError("Nome obrigatório");
-          return;
-        }
-        await signup(data.email, data.password, data.name);
+        await signup(data.email, data.password, data.name || "");
       }
 
       router.push("/dashboard");
     } catch (err: any) {
-      const message = err?.response?.data?.error ?? err?.message ?? "Erro desconhecido";
-      setError(message);
-    } finally {
-      setIsLoading(false);
+      setGlobalError(err.message || "Erro ao processar solicitação");
     }
   };
 
@@ -84,10 +71,16 @@ export function AuthForm({ mode }: AuthFormProps) {
           {mode === "signup" && (
             <div className="space-y-2">
               <Label htmlFor="name">Nome</Label>
-              <Input id="name" type="text" {...register("name")} />
-              {formState.errors.name && (
-                <span className="text-destructive text-sm">
-                  {formState.errors.name.message}
+              <Input
+                id="name"
+                placeholder="Seu nome"
+                {...register("name", {
+                  required: mode === "signup" ? "O nome é obrigatório" : false,
+                })}
+              />
+              {errors.name && (
+                <span className="text-xs text-red-500">
+                  {errors.name.message}
                 </span>
               )}
             </div>
@@ -95,33 +88,87 @@ export function AuthForm({ mode }: AuthFormProps) {
 
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
-            <Input id="email" type="email" {...register("email")} />
-            {formState.errors.email && (
-              <span className="text-destructive text-sm">
-                {formState.errors.email.message}
+            <Input
+              id="email"
+              type="email"
+              placeholder="seu@email.com"
+              {...register("email", {
+                required: "O email é obrigatório",
+                pattern: {
+                  value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                  message: "Email inválido",
+                },
+              })}
+            />
+            {errors.email && (
+              <span className="text-xs text-red-500">
+                {errors.email.message}
               </span>
             )}
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="password">Senha</Label>
-            <Input id="password" type="password" {...register("password")} />
-            {formState.errors.password && (
-              <span className="text-destructive text-sm">
-                {formState.errors.password.message}
+            <Input
+              id="password"
+              type="password"
+              placeholder="••••••••"
+              {...register("password", {
+                required: "A senha é obrigatória",
+                minLength: {
+                  value: 6,
+                  message: "A senha deve ter no mínimo 6 caracteres",
+                },
+              })}
+            />
+            {errors.password && (
+              <span className="text-xs text-red-500">
+                {errors.password.message}
               </span>
             )}
           </div>
 
-          {error && (
+          {globalError && (
             <div className="p-3 bg-destructive/10 text-destructive text-sm rounded-md">
-              {error}
+              {globalError}
             </div>
           )}
 
-          <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? "Processando..." : mode === "login" ? "Entrar" : "Criar Conta"}
+          <Button
+            type="submit"
+            className="w-full cursor-pointer"
+            disabled={isSubmitting}
+          >
+            {isSubmitting
+              ? "Processando..."
+              : mode === "login"
+              ? "Entrar"
+              : "Criar Conta"}
           </Button>
+
+          <div className="text-sm text-center text-muted-foreground">
+            {mode === "login" ? (
+              <>
+                Não tem conta?{" "}
+                <a
+                  href="/signup"
+                  className="text-primary hover:underline cursor-pointer"
+                >
+                  Criar conta
+                </a>
+              </>
+            ) : (
+              <>
+                Já tem conta?{" "}
+                <a
+                  href="/login"
+                  className="text-primary hover:underline cursor-pointer"
+                >
+                  Entrar
+                </a>
+              </>
+            )}
+          </div>
         </form>
       </CardContent>
     </Card>

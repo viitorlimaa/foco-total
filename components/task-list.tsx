@@ -10,7 +10,15 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
-import { Trash2, Check } from "lucide-react";
+import { Trash2, Check, Pen } from "lucide-react";
+import { EditTaskForm } from "./edit-task";
+import { Dialog } from "@radix-ui/react-dialog";
+import {
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "./ui/dialog";
 
 interface TaskListProps {
   userId: string;
@@ -26,30 +34,26 @@ export function TaskList({
   showFilters = true,
 }: TaskListProps) {
   const { tasks: tasksData, isLoading, mutate } = useTasks(userId, status);
+  const [open, setOpen] = useState(false);
 
-  // Garante que tasks seja sempre um array
   const tasks: Task[] = Array.isArray(tasksData) ? tasksData : [];
-
   const [filter, setFilter] = useState<FilterType>("all");
 
   const filteredTasks: Task[] =
-    filter === "all" ? tasks : tasks.filter((t: Task) => t.status === filter);
+    filter === "all" ? tasks : tasks.filter((t) => t.status === filter);
 
-  const handleToggleStatus = async (task: Task): Promise<void> => {
+  const handleToggleStatus = async (task: Task) => {
     try {
       await updateTaskAction(task.id, {
         status: task.status === "pending" ? "completed" : "pending",
       });
       mutate();
-    } catch (error: unknown) {
-      console.error(
-        "Erro ao atualizar tarefa:",
-        error instanceof Error ? error.message : error
-      );
+    } catch (error) {
+      console.error("Erro ao atualizar tarefa:", error);
     }
   };
 
-  const handleDelete = async (taskId: string): Promise<void> => {
+  const handleDelete = async (taskId: string) => {
     const confirmed = window.confirm(
       "Tem certeza que deseja deletar esta tarefa?"
     );
@@ -58,11 +62,8 @@ export function TaskList({
     try {
       await deleteTaskAction(taskId);
       mutate();
-    } catch (error: unknown) {
-      console.error(
-        "Erro ao deletar tarefa:",
-        error instanceof Error ? error.message : error
-      );
+    } catch (error) {
+      console.error("Erro ao deletar tarefa:", error);
     }
   };
 
@@ -112,7 +113,7 @@ export function TaskList({
       )}
 
       <div className="grid gap-3">
-        {filteredTasks.map((task: Task) => (
+        {filteredTasks.map((task) => (
           <Card
             key={task.id}
             className={task.status === "completed" ? "opacity-60" : ""}
@@ -134,6 +135,7 @@ export function TaskList({
                         <div className="h-4 w-4 border-2 border-muted-foreground rounded" />
                       )}
                     </Button>
+
                     <h3
                       className={`font-semibold text-lg ${
                         task.status === "completed"
@@ -143,6 +145,7 @@ export function TaskList({
                     >
                       {task.title}
                     </h3>
+
                     <Badge
                       variant={
                         task.status === "completed" ? "secondary" : "default"
@@ -172,6 +175,32 @@ export function TaskList({
                   </div>
                 </div>
 
+                {/* Modal de edição */}
+                <Dialog open={open} onOpenChange={setOpen}>
+                  <DialogTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      onClick={() => setOpen(true)}
+                    >
+                      <Pen className="size-4" />
+                    </Button>
+                  </DialogTrigger>
+
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Editar Tarefa</DialogTitle>
+                    </DialogHeader>
+
+                    <EditTaskForm
+                      task={task}
+                      onClose={() => setOpen(false)}
+                      onUpdated={() => mutate()}
+                    />
+                  </DialogContent>
+                </Dialog>
+
+                {/* Botão de deletar */}
                 <Button
                   variant="ghost"
                   size="sm"
