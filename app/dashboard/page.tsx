@@ -1,5 +1,5 @@
 "use client"
-import { useAuth } from "@/lib/auth-context"
+import { useAuth } from "@/hooks/auth"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { TaskHeader } from "@/components/task-header"
@@ -7,15 +7,14 @@ import { CreateTaskForm } from "@/components/create-task-form"
 import { TaskList } from "@/components/task-list"
 
 export default function DashboardPage() {
-  const { user, isAuthenticated, isLoading } = useAuth()
+  const { user,  isLoading } = useAuth()
   const router = useRouter()
-  const [refreshTrigger, setRefreshTrigger] = useState(0)
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
+    if (!isLoading && !user) {
       router.push("/login")
     }
-  }, [isAuthenticated, isLoading, router])
+  }, [isLoading, user, router])
 
   if (isLoading) {
     return (
@@ -29,24 +28,18 @@ export default function DashboardPage() {
     return null
   }
 
-  const handleTaskCreated = () => {
-    setRefreshTrigger((prev) => prev + 1)
-  }
-
   return (
     <div className="min-h-screen bg-background">
       <TaskHeader />
 
       <main className="max-w-7xl mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left column: Create task form */}
           <div className="lg:col-span-1">
-            <CreateTaskForm onTaskCreated={handleTaskCreated} />
+            <CreateTaskForm />
           </div>
 
-          {/* Right column: Task list */}
           <div className="lg:col-span-2">
-            <TaskList key={refreshTrigger} userId={user.id} showFilters={true} />
+            <TaskList />
           </div>
         </div>
       </main>

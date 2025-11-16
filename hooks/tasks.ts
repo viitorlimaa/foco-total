@@ -11,7 +11,7 @@ export const QueryKeys = {
 export const useGetTasks = () => {
   return useQuery({
     queryKey: QueryKeys.all,
-    queryFn: async () => await getTasks(),
+    queryFn: async () => (await getTasks()).data,
   });
 };
 
