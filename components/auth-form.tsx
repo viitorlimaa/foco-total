@@ -54,7 +54,7 @@ export function AuthForm({ mode }: AuthFormProps) {
       <CardHeader>
         <CardTitle>{mode === "login" ? "Entrar" : "Criar Conta"}</CardTitle>
         <CardDescription>
-          {mode === "login" ? "Faça login para acessar suas tarefas" : "Crie uma nova conta para começar"}
+          {mode === "login" ? "Faça login para acessar a plataforma" : "Crie uma nova conta para começar"}
         </CardDescription>
       </CardHeader>
       <CardContent>

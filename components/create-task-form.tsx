@@ -49,6 +49,10 @@ export function CreateTaskForm({ onTaskCreated }: CreateTaskFormProps) {
         data.description,
         data.dueDate
       )
+      console.log(`id ${user.id}`)
+      console.log(`id ${data.title}`)
+      console.log(`id ${data.description}`)
+      console.log(`id ${data.dueDate}`)
 
       setSucess(true)
       reset()
@@ -64,7 +68,6 @@ export function CreateTaskForm({ onTaskCreated }: CreateTaskFormProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Nova Tarefa</CardTitle>
         <CardDescription>Crie uma nova tarefa para gerenciar suas atividades</CardDescription>
       </CardHeader>
       <CardContent>

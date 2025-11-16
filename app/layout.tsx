@@ -5,6 +5,7 @@ import { Analytics } from "@vercel/analytics/next"
 import "./globals.css"
 import { AuthProvider } from "@/lib/auth-context"
 import { ThemeProvider } from "@/lib/theme-context"
+import { Toaster } from "@/components/ui/toaster"
 
 const _inter = Inter({ subsets: ["latin"], variable: "--font-sans" })
 
@@ -39,9 +40,11 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" suppressHydrationWarning>
       <body className={`${_inter.variable} font-sans antialiased`}>
+        <Toaster />
         <ThemeProvider>
           <AuthProvider>{children}</AuthProvider>
         </ThemeProvider>
+        
         <Analytics />
       </body>
     </html>
