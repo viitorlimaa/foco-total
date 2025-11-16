@@ -3,28 +3,25 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import type { Task } from "@/lib/types";
-import { updateTaskAction } from "@/lib/tasks-hooks";
-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { useUpdateTaskMutation } from "@/hooks/tasks";
+import { toast } from "@/hooks/use-toast";
 
 interface EditTaskFormProps {
   task: Task;
   onClose: () => void;
-  onUpdated: () => void;
 }
 
 interface TaskFormData {
   title: string;
   description: string;
-  dueDate: string; // input date precisa ser string
+  dueDate: string;
 }
 
-export function EditTaskForm({ task, onClose, onUpdated }: EditTaskFormProps) {
-  const [apiError, setApiError] = useState("");
-
+export function EditTaskForm({ task, onClose }: EditTaskFormProps) {
   const {
     register,
     handleSubmit,
@@ -39,21 +36,29 @@ export function EditTaskForm({ task, onClose, onUpdated }: EditTaskFormProps) {
     },
   });
 
-  const onSubmit = async (data: TaskFormData) => {
-    setApiError("");
+  const updateTaskMutation = useUpdateTaskMutation();
 
-    try {
-      await updateTaskAction(task.id, {
+  const onSubmit = async (data: TaskFormData) => {
+    updateTaskMutation.mutate(
+      {
+        id: task.id,
         title: data.title,
         description: data.description,
-        dueDate: data.dueDate ? new Date(data.dueDate) : null,
-      });
-
-      onUpdated();
-      onClose();
-    } catch (error: any) {
-      setApiError(error.message || "Erro ao atualizar");
-    }
+        dueDate: data.dueDate,
+      },
+      {
+        onSuccess: () => {
+          onClose();
+        },
+        onError: (err) => {
+          toast({
+              title: 'Erro ao editar tarefa',
+              description: err.message,
+              variant: "destructive",
+            });
+        },
+      }
+    );
   };
 
   return (
@@ -64,7 +69,7 @@ export function EditTaskForm({ task, onClose, onUpdated }: EditTaskFormProps) {
           id="title"
           {...register("title", {
             required: "Título é obrigatório",
-            minLength: { value: 3, message: "Mínimo de 3 caracteres" },
+            minLength: { value: 3, message: "O título deve ter pelo menos 3 letras" }
           })}
         />
         {errors.title && (
@@ -74,25 +79,37 @@ export function EditTaskForm({ task, onClose, onUpdated }: EditTaskFormProps) {
 
       <div className="space-y-2">
         <Label htmlFor="description">Descrição</Label>
-        <Textarea id="description" rows={3} {...register("description")} />
+        <Textarea
+          id="description"
+          rows={3}
+          {...register("description")}
+        />
+        {errors.description && (
+          <p className="text-xs text-red-500">{errors.description.message}</p>
+        )}
       </div>
 
       <div className="space-y-2">
         <Label htmlFor="dueDate">Data de vencimento</Label>
-        <Input id="dueDate" type="date" {...register("dueDate")} />
+        <Input
+          id="dueDate"
+          type="date"
+          {...register("dueDate", {
+            validate: (value) => {
+            if (!value) return true;
+            const selectedDate = new Date(value + "T23:59:59").getTime();
+            const today = new Date().getTime();
+            return selectedDate > today || "A data não pode ser no passado";
+            }
+          })}
+        />
         {errors.dueDate && (
           <p className="text-xs text-red-500">{errors.dueDate.message}</p>
         )}
       </div>
 
-      {apiError && (
-        <p className="text-red-500 text-sm p-2 bg-red-100 rounded">
-          {apiError}
-        </p>
-      )}
-
-      <Button type="submit" className="w-full" disabled={isSubmitting}>
-        {isSubmitting ? "Salvando..." : "Salvar Alterações"}
+      <Button type="submit" className="w-full" disabled={updateTaskMutation.isPending}>
+        {updateTaskMutation.isPending ? "Salvando..." : "Salvar Alterações"}
       </Button>
     </form>
   );

@@ -5,8 +5,9 @@ export async function PATCH(
   request: Request,
   context: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await context.params; // await obrigatório
+  const { id } = await context.params;
   const updates = await request.json();
+  updates.dueDate = updates.dueDate ? new Date(updates.dueDate) : null;
 
   try {
     const updated = await prisma.task.update({
