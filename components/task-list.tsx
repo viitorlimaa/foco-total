@@ -4,15 +4,18 @@ import { useGetTasks } from '@/hooks/tasks';
 import { LoadingSpinner } from './loading-spinner';
 import { EmptyState } from './empty-state';
 import { TaskItem } from './task-item'; 
-import { useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from './ui/button';
 import { Task } from '@/lib/types';
 import { Card, CardContent } from './ui/card';
+import { SearchInput } from './ui/textinput';
 
 type FilterType = "all" | "pending" | "completed";
 
 export function TaskList() {
   const [filter, setFilter] = useState<FilterType>("all");
+  const [search, setSearch] = useState("");
+  const [filteredTasks, setFilteredTasks] = useState<Task[]>([]);
   const showFilters = true;
 
   const {
@@ -21,6 +24,26 @@ export function TaskList() {
     isError,
     error,
   } = useGetTasks();
+
+  useEffect(() => {
+    if (!tasks) return;
+
+    let filtered = tasks;
+
+    if (search.length >= 3) {
+      const s = search.toLowerCase();
+      filtered = filtered.filter((task: Task) =>
+        task.title.toLowerCase().includes(s)
+      );
+    }
+
+    if (filter !== "all") {
+      filtered = filtered.filter((task: Task) => task.status === filter);
+    }
+
+    setFilteredTasks(filtered);
+  }, [tasks, search, filter]);
+
   if (isLoading) {
     return <LoadingSpinner />;
   }
@@ -34,8 +57,6 @@ export function TaskList() {
     );
   }
 
-  
-
   if (!tasks || tasks.length === 0) {
     return (
       <EmptyState
@@ -44,12 +65,16 @@ export function TaskList() {
       />
     );
   }
-  const filteredTasks = filter === "all" ? tasks : tasks?.filter((t: Task) => t.status === filter)
 
   return (
     <div className="space-y-4">
       {showFilters && (
-        <div className="flex gap-2">
+        <div className="flex gap-2 justify-center items-end flex-wrap sm:flex-nowrap">
+          <SearchInput
+            onChange={setSearch}
+            value={search}
+            placeholder="Buscar tarefas..."
+          />
           {(["all", "pending", "completed"] as const).map((type) => (
             <Button
               key={type}
@@ -59,13 +84,13 @@ export function TaskList() {
               className="cursor-pointer"
             >
               {type === "all"
-                ? `Todas (${tasks.length})`
+                ? `Todas (${tasks.filter((t: Task) => t.title.toLowerCase().includes(search.toLowerCase())).length})`
                 : type === "pending"
                 ? `Pendentes (${
-                    tasks.filter((t: Task) => t.status === "pending").length
+                    tasks.filter((t: Task) => t.status === "pending" && t.title.toLowerCase().includes(search.toLowerCase())).length
                   })`
                 : `Concluídas (${
-                    tasks.filter((t: Task) => t.status === "completed").length
+                    tasks.filter((t: Task) => t.status === "completed" && t.title.toLowerCase().includes(search.toLowerCase())).length
                   })`}
             </Button>
           ))}
