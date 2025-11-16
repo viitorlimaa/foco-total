@@ -3,7 +3,7 @@ import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import "./globals.css"
-import { AuthProvider } from "@/lib/auth-context"
+import { AuthProvider } from "@/hooks/auth"
 import { ThemeProvider } from "@/lib/theme-context"
 import ReactQueryProvider from "@/lib/react-query-provider";
 
@@ -41,9 +41,11 @@ export default function RootLayout({
     <html lang="pt-BR" suppressHydrationWarning>
       <body className={`${_inter.variable} font-sans antialiased`}>
         <ThemeProvider>
-          <AuthProvider>
-            <ReactQueryProvider>{children}</ReactQueryProvider>
-          </AuthProvider>
+          <ReactQueryProvider>
+            <AuthProvider>
+              {children}
+            </AuthProvider>
+          </ReactQueryProvider>
         </ThemeProvider>
         <Analytics />
       </body>

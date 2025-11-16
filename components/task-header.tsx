@@ -1,18 +1,21 @@
 "use client"
 
-import { useAuth } from "@/lib/auth-context"
+import { useAuth } from "@/hooks/auth"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { ThemeToggle } from "./theme-toggle"
 
 export function TaskHeader() {
-  const { user, logout } = useAuth()
+  const { user, logoutMutation } = useAuth()
   const router = useRouter()
 
   const handleLogout = () => {
-    logout()
-    router.push("/login")
+    logoutMutation.mutate(undefined, {
+      onSuccess: () => {
+        router.push("/login")
+      },
+    })
   }
 
   return (

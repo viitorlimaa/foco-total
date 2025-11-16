@@ -15,6 +15,7 @@ export interface TaskPayload {
 
 export interface Task extends TaskPayload {
   id: string
+  createdAt: string
 }
 
 export interface AuthContextType {

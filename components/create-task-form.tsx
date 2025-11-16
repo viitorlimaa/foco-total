@@ -1,6 +1,6 @@
 'use client';
-import { useAuth } from "@/lib/auth-context";
-import { useCreateTaskMutation } from "@/lib/tasks-hooks";
+import { useAuth } from "@/hooks/auth";
+import { useCreateTaskMutation } from "@/hooks/tasks";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +19,7 @@ export function CreateTaskForm() {
     register,
     handleSubmit,
     formState: { errors },
+    reset,
   } = useForm<TaskPayload>({
     defaultValues: {
       title: "",
@@ -39,6 +40,7 @@ export function CreateTaskForm() {
         },
         {
           onSuccess: () => {
+            reset();
             toast({ title: 'Sucesso!', description: 'Tarefa criada.' });
           },
           onError: (error) => {

@@ -1,23 +1,43 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { error } from "console";
+import { verifyJwt } from "@/lib/jwt";
 
 export async function GET(req: Request) {
   try {
-    const { searchParams } = new URL(req.url);
-    const userId = searchParams.get("userId");
+    const cookie = req.headers.get("cookie") ?? "";
+    const match = cookie.match(/(^|; )token=([^;]+)/);
+    let token = match ? decodeURIComponent(match[2]) : null;
 
-    if (!userId) {
-      return NextResponse.json({ error: "Missing userId" }, { status: 400 });
+    if (!token) {
+      const auth = req.headers.get("authorization");
+      if (auth && auth.startsWith("Bearer ")) {
+        token = auth.substring(7);
+      }
+    }
+
+    if (!token) {
+      token = req.headers.get("x-access-token") ?? null;
+    }
+
+    if (!token) {
+      return NextResponse.json({ error: "Token not provided" }, { status: 400 });
+    }
+
+    let payload: any;
+    try {
+      payload = verifyJwt<{ sub: string }>(token);
+    } catch (err) {
+      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
 
     const tasks = await prisma.task.findMany({
-      where: { userId },
+      where: { userId: payload.sub },
       orderBy: { createdAt: "desc" },
     });
 
     return NextResponse.json(tasks, { status: 200 });
   } catch (err) {
-    console.error("Erro GET /tasks:", err);
     return NextResponse.json(
       { error: "Internal Server Error" },
       { status: 500 }
@@ -27,23 +47,44 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    const { userId, title, description, dueDate } = body;
+    const cookie = req.headers.get("cookie") ?? "";
+    const match = cookie.match(/(^|; )token=([^;]+)/);
+    let token = match ? decodeURIComponent(match[2]) : null;
 
-  
-    console.log("---------------------------------");
-    console.log("RECEBIDO NA API (POST):", body);
-    console.log("TENTANDO CRIAR TASK COM userId:", userId);
-    console.log("---------------------------------");
+    if (!token) {
+      const auth = req.headers.get("authorization");
+      if (auth && auth.startsWith("Bearer ")) {
+        token = auth.substring(7);
+      }
+    }
+
+    if (!token) {
+      token = req.headers.get("x-access-token") ?? null;
+    }
+
+    if (!token) {
+      return NextResponse.json({ error: "Token not provided" }, { status: 400 });
+    }
+
+    let payload: any;
+    try {
+      payload = verifyJwt<{ sub: string }>(token);
+    } catch (err) {
+      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+    }
+
+
+    const body = await req.json();
+    const { title, description, dueDate } = body;
    
 
-    if (!userId || !title) {
+    if (!title) {
       return NextResponse.json({ error: "Missing fields" }, { status: 400 });
     }
 
     const newTask = await prisma.task.create({
       data: {
-        userId, 
+        userId: payload.sub, 
         title,
         description: description || "",
         dueDate: dueDate ? new Date(dueDate) : null,
@@ -53,8 +94,6 @@ export async function POST(req: Request) {
 
     return NextResponse.json(newTask, { status: 201 });
   } catch (err) {
-    // Log do erro completo para o terminal
-    console.error("ERRO COMPLETO DO PRISMA (POST):", err);
     return NextResponse.json(
       { error: "Failed to create task" },
       { status: 500 }

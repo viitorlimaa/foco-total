@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { useAuth } from "@/lib/auth-context"
+import { useAuth } from "@/hooks/auth"
 import { useForm } from "react-hook-form"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -22,7 +22,7 @@ interface FormData {
 export function AuthForm({ mode }: AuthFormProps) {
   const [globalError, setGlobalError] = useState("")
   
-  const { login, signup } = useAuth()
+  const { loginMutation, registerMutation } = useAuth()
   const router = useRouter()
 
 
@@ -37,15 +37,24 @@ export function AuthForm({ mode }: AuthFormProps) {
   const onSubmit = async (data: FormData) => {
     setGlobalError("")
 
-    try {
-      if (mode === "login") {
-        await login(data.email, data.password)
-      } else {
-        await signup(data.email, data.password, data.name || "")
-      }
-      router.push("/dashboard")
-    } catch (err: any) {
-      setGlobalError(err.message || "Erro ao processar solicitação")
+    if ( mode == "login" ) {
+      loginMutation.mutate({ email: data.email, password: data.password }, {
+        onSuccess: () => {
+          router.push("/dashboard")
+        },
+        onError: (err: any) => {
+          setGlobalError(err.response.data.error || "Erro ao processar solicitação")
+        }
+      })
+    } else {
+      registerMutation.mutate({ name: data.name!, email: data.email, password: data.password }, {
+        onSuccess: () => {
+          router.push("/dashboard")
+        },
+        onError: (err) => {
+          setGlobalError(err.message || "Erro ao processar solicitação")
+        }
+      })
     }
   }
 
