@@ -111,7 +111,13 @@ export function TaskItem({ task }: { task: Task }) {
                   {task.dueDate && (
                     <span>
                       Vencimento:{" "}
-                      {new Date(task.dueDate).toLocaleDateString("pt-BR")}
+                      {
+                        (() => {
+                          const d = new Date(task.dueDate);
+                          d.setDate(d.getDate() + 1);
+                          return d.toLocaleDateString("pt-BR");
+                        })()
+                      }
                     </span>
                   )}
                   <span>
