@@ -19,7 +19,7 @@ export function TaskHeader() {
   }
 
   return (
-    <header className="bg-primary text-primary-foreground shadow-md border-b border-border">
+    <header className="bg-blue-800 text-white shadow-md border-b border-border">
       <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
         <Link href="/dashboard" className="text-2xl font-bold">
           Foco Total

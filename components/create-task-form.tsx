@@ -56,7 +56,6 @@ export function CreateTaskForm() {
     return (
     <Card>
       <CardHeader>
-        <CardTitle>Nova Tarefa</CardTitle>
         <CardDescription>Crie uma nova tarefa para gerenciar suas atividades</CardDescription>
       </CardHeader>
       <CardContent>
